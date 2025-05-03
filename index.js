@@ -3,7 +3,7 @@ require('dotenv').config();
 const cors = require('cors');
 // const morgan = require('morgan')
 const app = express();
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const port = process.env.PORT || 5000;
 const jwt = require('jsonwebtoken');
 
@@ -69,7 +69,35 @@ const verifyToken = (req, res, next) => {
 
 }
 
-app.post('/api/v1/add-task', async(req, res) => {
+
+app.get('/api/v1/users', verifyToken, async (req, res) => {
+
+
+    const email = req.query.email;
+    if (email !== req?.email) {
+        return res.status(401).send({ message: 'Unauthorized User' })
+    } else {
+        const filter = { email };
+        const result = await usersCollection.findOne(filter)
+        res.send(result);
+    }
+
+
+})
+
+// get tasks related api 
+
+app.get('/api/v1/tasks', async (req, res) => {
+
+    const email = req.query.email;
+    const filter = { email }
+    const result = await tasksCollection.find(filter).toArray();
+    res.send(result)
+
+})
+
+
+app.post('/api/v1/add-task', async (req, res) => {
     const addTaskData = req.body;
     const result = await tasksCollection.insertOne(addTaskData);
     res.send(result)
@@ -108,24 +136,60 @@ app.post('/api/v1/users', async (req, res) => {
     }
 })
 
-app.get('/api/v1/users', verifyToken, async (req, res) => {
 
+app.patch('/api/v1/users', async (req, res) => {
+    try {
+        const email = req.query.email;
+        const payAmount = req.body.payAmount;
 
-    const email = req.query.email;
-    console.log(email, 'Clint site user')
-    console.log(req?.email, 'Decoded email')
-    if (email !== req?.email) {
-        return res.status(401).send({ message: 'Unauthorized User' })
-    } else {
         const filter = { email };
-        const result = await usersCollection.findOne(filter)
+        const updateDoc = {
+            $inc: { coins: -payAmount } // This is better than $set if you're decreasing
+        };
+
+        const result = await usersCollection.updateOne(filter, updateDoc);
         res.send(result);
+
+
+
+    } catch (error) {
+
     }
 
 
 })
 
+app.patch('/api/v1/update-task', async (req, res) => {
+try {
+    const taskId = req.query.id
+    const {task_title, task_detail, submission_info} = req.body;
 
+    // if(!id){
+    //     return
+    // }
+
+    const filter = { _id: new ObjectId(taskId) }
+
+
+
+    const options = { upsert: true };
+
+    const updateDoc = {
+        $set: {
+            task_title,
+            task_detail,
+            submission_info,
+        }
+    }
+
+
+    const result = await tasksCollection.updateOne(filter, updateDoc, options)
+    res.send(result)
+    
+} catch (error) {
+    console.log(error.message)
+}
+})
 
 
 app.get('/', async (req, res) => {
