@@ -42,6 +42,7 @@ run().catch(console.dir);
 const usersCollection = client.db('mini-missions').collection('users')
 const tasksCollection = client.db('mini-missions').collection('tasks');
 const packageCollection = client.db('mini-missions').collection('packages');
+const paymentCollection = client.db('mini-missions').collection('payment');
 
 
 app.post('/jwt', async (req, res) => {
@@ -113,6 +114,14 @@ app.post('/api/v1/add-task', async (req, res) => {
 
 })
 
+// get payment history relate api 
+app.get('/api/v1/payment-history', async(req, res ) => {
+    const email = req.query.email;
+    const filter = {email};
+    const result = await paymentCollection.find(filter).toArray();
+    res.send(result)
+})
+
 app.post('/api/v1/users', async (req, res) => {
     try {
         const userData = req.body;
@@ -141,6 +150,16 @@ app.post('/api/v1/users', async (req, res) => {
         console.log(error.message)
 
     }
+})
+
+// payment history inserted relate api
+app.post('/api/v1/payment', async(req,res) => {
+    const paymentData = req.body;
+
+    const result  = await paymentCollection.insertOne(paymentData)
+    console.log(result)
+    res.send(result)
+
 })
 
 
@@ -238,6 +257,8 @@ app.patch('/api/v1/update-coins', async (req, res) => {
         res.status(500).json({ error: 'Failed to update coins' });
     }
 });
+
+
 
 
 
