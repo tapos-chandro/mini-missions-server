@@ -6,6 +6,7 @@ const app = express();
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const port = process.env.PORT || 5000;
 const jwt = require('jsonwebtoken');
+const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 
 
 
@@ -39,7 +40,8 @@ async function run() {
 run().catch(console.dir);
 
 const usersCollection = client.db('mini-missions').collection('users')
-const tasksCollection = client.db('mini-missions').collection('tasks')
+const tasksCollection = client.db('mini-missions').collection('tasks');
+const packageCollection = client.db('mini-missions').collection('packages');
 
 
 app.post('/jwt', async (req, res) => {
@@ -96,6 +98,13 @@ app.get('/api/v1/tasks', async (req, res) => {
 
 })
 
+// get packages related api
+
+app.get('/api/v1/package', async (req, res) => {
+    const result = await packageCollection.find().toArray();
+    res.send(result)
+})
+
 
 app.post('/api/v1/add-task', async (req, res) => {
     const addTaskData = req.body;
@@ -115,8 +124,6 @@ app.post('/api/v1/users', async (req, res) => {
             res.send('already user ')
             return
         } else {
-
-            console.log(userData.role)
             let userAddCoin = {}
             if (userData.role === "buyer") {
                 userAddCoin = { ...userData, coins: 50 }
@@ -160,36 +167,80 @@ app.patch('/api/v1/users', async (req, res) => {
 })
 
 app.patch('/api/v1/update-task', async (req, res) => {
-try {
-    const taskId = req.query.id
-    const {task_title, task_detail, submission_info} = req.body;
+    try {
+        const taskId = req.query.id
+        const { task_title, task_detail, submission_info } = req.body;
 
-    // if(!id){
-    //     return
-    // }
+        // if(!id){
+        //     return
+        // }
 
-    const filter = { _id: new ObjectId(taskId) }
+        const filter = { _id: new ObjectId(taskId) }
 
 
 
-    const options = { upsert: true };
+        const options = { upsert: true };
 
-    const updateDoc = {
-        $set: {
-            task_title,
-            task_detail,
-            submission_info,
+        const updateDoc = {
+            $set: {
+                task_title,
+                task_detail,
+                submission_info,
+            }
         }
+
+
+        const result = await tasksCollection.updateOne(filter, updateDoc, options)
+        res.send(result)
+
+    } catch (error) {
+        console.log(error.message)
     }
-
-
-    const result = await tasksCollection.updateOne(filter, updateDoc, options)
-    res.send(result)
-    
-} catch (error) {
-    console.log(error.message)
-}
 })
+
+
+
+
+
+// payment relate api 
+
+app.post('/api/v1/secret', async (req, res) => {
+    const amount = req.body;
+    const paymentIntent = await stripe.paymentIntents.create({
+        amount: amount?.amount,
+        currency: 'usd',
+        payment_method_types: ['card'],
+        statement_descriptor: 'Custom descriptor',
+    });
+
+    // res.json({client_secret: intent.client_secret});
+    res.json({ client_secret: paymentIntent.client_secret });
+
+
+})
+
+// updata user coin relate api
+
+app.patch('/api/v1/update-coins', async (req, res) => {
+    try {
+        const updateCoins = req.body;
+        const email = req.query.email;
+
+        const filter = { email };
+        const updateDoc = {
+            $inc: { coins: updateCoins.addCoins }
+        };
+
+        const result = await usersCollection.updateOne(filter, updateDoc);
+        res.send(result)
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Failed to update coins' });
+    }
+});
+
+
+
 
 
 app.get('/', async (req, res) => {
