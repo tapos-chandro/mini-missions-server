@@ -43,6 +43,7 @@ const usersCollection = client.db('mini-missions').collection('users')
 const tasksCollection = client.db('mini-missions').collection('tasks');
 const packageCollection = client.db('mini-missions').collection('packages');
 const paymentCollection = client.db('mini-missions').collection('payment');
+const submissionsCollection = client.db('mini-missions').collection('submissions');
 
 
 app.post('/jwt', async (req, res) => {
@@ -99,6 +100,24 @@ app.get('/api/v1/tasks', async (req, res) => {
 
 })
 
+app.get('/api/v1/available-task', async (req, res) => {
+
+    const taskId = req.query.id;
+
+    let filter = {}
+
+    if (taskId) {
+        filter = { _id: new ObjectId(taskId) }
+    } else {
+        filter = {}
+    }
+    const result = await tasksCollection.find(filter).toArray();
+    const finalResult = result.filter(task => Number(task.required_workers) > 0)
+    res.send(finalResult)
+
+
+})
+
 // get packages related api
 
 app.get('/api/v1/package', async (req, res) => {
@@ -114,11 +133,20 @@ app.post('/api/v1/add-task', async (req, res) => {
 
 })
 
-// get payment history relate api 
-app.get('/api/v1/payment-history', async(req, res ) => {
+// get payment history related api 
+app.get('/api/v1/payment-history', async (req, res) => {
     const email = req.query.email;
-    const filter = {email};
+    const filter = { email };
     const result = await paymentCollection.find(filter).toArray();
+    res.send(result)
+})
+
+// submission get related api 
+
+app.get('/api/v1/submissions', async (req, res) => {
+    const email = req.query.email;
+    const filter = { worker_email: email };
+    const result = await submissionsCollection.find(filter).toArray();
     res.send(result)
 })
 
@@ -153,12 +181,19 @@ app.post('/api/v1/users', async (req, res) => {
 })
 
 // payment history inserted relate api
-app.post('/api/v1/payment', async(req,res) => {
+app.post('/api/v1/payment', async (req, res) => {
     const paymentData = req.body;
 
-    const result  = await paymentCollection.insertOne(paymentData)
-    console.log(result)
+    const result = await paymentCollection.insertOne(paymentData)
     res.send(result)
+
+})
+
+// submissions relate api 
+app.post('/api/v1/submission', async (req, res) => {
+    const submission = req.body;
+    const result = await submissionsCollection.insertOne(submission);
+    res.send(result);
 
 })
 
