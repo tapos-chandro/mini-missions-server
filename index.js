@@ -337,7 +337,7 @@ app.get('/api/v1/all-user', verifyToken, adminRole, async (req, res) => {
 })
 
 // submissions buyer review 
-app.get('/api/v1/submissions-review', async (req, res) => {
+app.get('/api/v1/submissions-review', verifyToken,  async (req, res) => {
     const email = req.query.email;
     const filter = { Buyer_email: email, status: "pending" }
     const result = await submissionsCollection.find(filter).toArray();
@@ -345,7 +345,7 @@ app.get('/api/v1/submissions-review', async (req, res) => {
 })
 
 // notification get related api
-app.get('/api/v1/notification', async (req, res) => {
+app.get('/api/v1/notification', verifyToken, async (req, res) => {
     const email = req.query.email;
     const buyerFilter = { Buyer_email: email }
     const workerFilter = { worker_email: email }
