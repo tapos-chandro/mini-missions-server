@@ -11,9 +11,26 @@ const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 
 
 app.use(cors({
-    origin: ['http://localhost:5173', 'http://localhost:5000'],
+    origin: ['https://mini-missions.netlify.app', 'https://mini-mission-server.vercel.app', 'http://localhost:3000'],
+    methods: ['GET', 'POST', 'PATCH', 'DELETE'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    exposedHeaders: ['Content-Type', 'Authorization'],    
     credentials: true,
 }))
+
+
+// const corsOptions = {
+//   origin: "*", // Allow all origins (change in production)
+//   Credential: true
+// };
+
+// app.use(cors({origin: "*", Credential: true}));
+
+// // Handle OPTIONS requests (Preflight Requests)
+// app.options("*", cors(corsOptions));
+
+
+
 app.use(express.json());
 // app.use(morgan())
 
